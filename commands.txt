@@ -1,0 +1,23 @@
+# Criando o cluster
+kind create cluster --name henrique-teste  --config kind-cluster-nodes.yaml
+
+# Adicionando metrics
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.5.0/components.yaml 
+
+# Patch para SSL
+kubectl patch deployment metrics-server -n kube-system --patch "$(cat metric-server-patch.yaml)"
+
+# Verificar metricas para todos os pods
+kubectl top pods -A
+
+# Deploy da aplicacao
+kubectl create -f php-apache-deployment.yaml
+
+# Executar carga
+kubectl run -i --tty load-generator --rm --image=busybox:1.28 --restart=Never -- /bin/sh -c "while sleep 0.01; do wget -q -O- http://php-apache; done"
+
+# Acompanhar metricas de hpa
+kubectl get hpa php-apache --watch
+
+# Descricao do uso do hpa
+kubectl describe hpa php-apache
